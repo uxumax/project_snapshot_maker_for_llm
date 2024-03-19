@@ -1,0 +1,7 @@
+# VIM
+*.swo
+*.swp
+
+# Snapshots
+snapshots/**/*
+!snapshots/example.md

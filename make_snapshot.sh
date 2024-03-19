@@ -1,91 +1,86 @@
 #!/bin/bash
 
-#| Description:
-#| This script takes a snapshot of a project directory, capturing the directory structure and file contents based on specified inclusion and exclusion patterns. It outputs the project's structure and the content of included files into a markdown file.
-#| Usage:
-#| ./script_name.sh <PROJECT_DIR> <OUTPUT_FILE> <INCLUDING_PATTERNS> <EXCLUDING_PATTERNS>
-#|  <PROJECT_DIR>          - The path to the project directory. Example: "./Etherscan/"
-#|  <OUTPUT_FILE>          - The name for the output markdown file. Example: "project_snapshot.md"
-#|  <INCLUDING_PATTERNS>   - Inclusion patterns: List of file extensions to include, separated by spaces. Example: "*.sol *.json"
-#|  <EXCLUDING_PATTERNS>   - Exception patterns: List of file extensions or parts of names to exclude, separated by spaces. Example: "*.log ."
-#| Options:
-#|  --help, -h             - Display this help message and exit.
+# Initialize variables for options
+project_dir=""
+output_file=""
+custom_excluding_patterns=""
 
-if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
-    grep '^#|' "$0" | sed 's/^#//'
-    exit 0
-fi
+# Define default exclusion patterns
+default_excluding_patterns=(
+    "*.jpg|*.gif|*.svg"
+    "|*.mp3|*.oga"
+    "|*.log|env"
+    "|__pycache__|*.pyc"
+)
 
-# Project directory path
-PROJECT_DIR=$1  # ex. "./Etherscan/"
-# Output file name
-OUTPUT_FILE=$2  # ex. "project_snapshot.md"
-# Inclusion patterns: list of extensions separated by spaces
-INCLUDING_PATTERNS=$3  # ex. "*.sol *.json"
-# Exception patterns: list of extensions or name parts separated by spaces
-EXCLUDING_PATTERNS=$4  # "*.log Proxy"
-
-check_utility() {
-    if ! command -v $1 &> /dev/null
-    then
-        echo "The $1 utility was not found."
-        exit 1
-    fi
+# Function to display usage information
+usage() {
+    echo "Usage: $0 -p <project_dir> -o <output_file> -e <excluding_patterns>"
+    exit 1
 }
 
-# Function for adding file content
-add_file_content() {
-    echo -e "\n### $1\n" >> "$OUTPUT_FILE"
-    echo '```solidity' >> "$OUTPUT_FILE"
-    cat "$1" >> "$OUTPUT_FILE"
-    echo '```' >> "$OUTPUT_FILE"
-    echo "" >> "$OUTPUT_FILE"
-}
-
-# Function for generating a string with parameters for the tree command
-build_tree_pattern() {
-    local include_pattern="" 
-    for ext in $INCLUDING_PATTERNS; do
-        if [ -z "$include_pattern" ]; then
-            include_pattern="$ext" # For the first extension
-        else
-            include_pattern="$include_pattern|$ext" # Adding other extensions
-        fi
-    done
-    local exclude_pattern="$EXCLUDING_PATTERNS"
-    echo "$include_pattern" "$exclude_pattern"
-}
-
-build_find_pattern() {
-    local find_args="" 
-    for ext in $INCLUDING_PATTERNS; do
-        find_args="$find_args -name \"$ext\" -o"
-    done
-    # Removing the last operator -o
-    find_args="${find_args% -o}"
-    for ext in $EXCLUDING_PATTERNS; do
-        find_args="$find_args ! -name \"$ext\""
-    done
-    echo "$find_args" 
-}
-
-check_utility tree
-check_utility find
-> $OUTPUT_FILE
-
-# Generating directory tree and saving the result to a file
-echo "## Full project tree" >> "$OUTPUT_FILE"
-read pattern exclude_pattern <<<$(build_tree_pattern)
-tree "$PROJECT_DIR" -P "$pattern" -I "$exclude_pattern" --prune >> "$OUTPUT_FILE"
-
-# Save all text to one file snapshot
-echo "## All files code"  >> "$OUTPUT_FILE"
-find_args=$(build_find_pattern)
-# Use find with -print0 to output filenames separated by a null character, 
-# ensuring accurate handling of filenames with special characters (including spaces).
-eval find "$PROJECT_DIR" -type f "\( $find_args \)" -print0 |
-while IFS= read -r -d $'\0' file; do
-    add_file_content "$file"
+# Process command line options
+while getopts "p:o:e:" opt; do
+    case ${opt} in
+        p )
+            project_dir=$OPTARG
+            ;;
+        o )
+            output_file=$OPTARG
+            ;;
+        e )
+            custom_excluding_patterns=$OPTARG
+            ;;
+        \? )
+            usage
+            ;;
+    esac
 done
 
-echo "Project snapshot saved $OUTPUT_FILE"
+# Set exclusion patterns
+excluding_patterns=$(printf "%s" "${default_excluding_patterns[@]}")
+if [ -n "$custom_excluding_patterns" ]; then
+    excluding_patterns="${custom_excluding_patterns}|${excluding_patterns}"
+fi
+
+# Set default output file if not specified
+if [ -z "$output_file" ]; then
+    output_file="./snapshots/snapshot_$(date +%Y-%m-%d).md"
+fi
+
+# Check for required parameters
+if [ -z "$project_dir" ]; then
+    echo "Error: Option -p <project_dir> is required."
+    usage
+fi
+
+if ! command -v tree &> /dev/null
+then
+    echo "The tree utility was not found."
+    exit 1
+fi
+
+# Clear output file at first
+> "$output_file"
+
+# Generating directory tree and saving the result to a file
+echo "## Full project tree" >> "$output_file"
+tree -I "$excluding_patterns" "$project_dir" -f --prune | head -n -1 >> "$output_file"
+
+# Save all text to one file snapshot
+echo "## All files code"  >> "$output_file"
+# Clear tree symbols and skip directories
+paths=$(grep -v '/$' "$output_file" | sed -e 's/^.*── //' -e '/^##/d') 
+# Add text to $output_file 
+while IFS= read -r path; do
+    if [ -f "$path" ]; then # Проверка, является ли путь файлом
+        # Save filepath
+        echo -e "\n### $path\n" >> "$output_file"
+        # Save file text
+        echo '```bash' >> "$output_file"
+        cat "$path" >> "$output_file"
+        echo '```' >> "$output_file"
+        # New line
+        echo "" >> "$output_file"
+    fi
+done <<< "$paths"
