@@ -7,9 +7,7 @@ custom_excluding_patterns=""
 
 # Define default exclusion patterns
 DEFAULT_EXCLUDING_PATTERNS=(
-    "*.jpg|*.gif|*.svg"
-    "|*.mp3|*.oga"
-    "|*.log|env"
+    "*.log|env"
     "|__pycache__|*.pyc"
 )
 
@@ -97,13 +95,16 @@ paths=$(grep -v '/$' "$output_file" | sed -e 's/^.*── //' -e '/^##/d')
 # Add text to $output_file 
 while IFS= read -r path; do
     if [ -f "$path" ]; then # Проверка, является ли путь файлом
-        # Save filepath
-        echo -e "\n### $path\n" >> "$output_file"
-        # Save file text
-        echo '```bash' >> "$output_file"
-        cat "$path" >> "$output_file"
-        echo '```' >> "$output_file"
-        # New line
-        echo "" >> "$output_file"
+        mime_type=$(file --mime-type -b "$path") # Get MIME type of the file
+        if [[ $mime_type == text/* ]]; then # Check if MIME type starts with "text/"
+            # Save filepath
+            echo -e "\n### $path\n" >> "$output_file"
+            # Save file text
+            echo '```bash' >> "$output_file"
+            cat "$path" >> "$output_file"
+            echo '```' >> "$output_file"
+            # New line
+            echo "" >> "$output_file"
+        fi
     fi
 done <<< "$paths"
