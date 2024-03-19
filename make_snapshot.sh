@@ -6,7 +6,7 @@ output_file=""
 custom_excluding_patterns=""
 
 # Define default exclusion patterns
-default_excluding_patterns=(
+DEFAULT_EXCLUDING_PATTERNS=(
     "*.jpg|*.gif|*.svg"
     "|*.mp3|*.oga"
     "|*.log|env"
@@ -38,7 +38,7 @@ while getopts "p:o:e:" opt; do
 done
 
 # Set exclusion patterns
-excluding_patterns=$(printf "%s" "${default_excluding_patterns[@]}")
+excluding_patterns=$(printf "%s" "${DEFAULT_EXCLUDING_PATTERNS[@]}")
 if [ -n "$custom_excluding_patterns" ]; then
     excluding_patterns="${custom_excluding_patterns}|${excluding_patterns}"
 fi
@@ -60,12 +60,35 @@ then
     exit 1
 fi
 
-# Clear output file at first
-> "$output_file"
+# Write the markdown prompt to the output file
+cat << 'EOF' > "$output_file"
+# Project Snapshot Overview
+
+This document is a comprehensive textual snapshot of a software project. It is designed for analysis by Large Language Models (LLMs), like ChatGPT, to facilitate in-depth understanding and exploration of the project's codebase and structure. The snapshot aims to provide a clear and organized presentation of the project components for effective analysis and interpretation.
+
+## How to Navigate This Snapshot
+
+- **Full Project Tree**: Initially, you'll find a complete tree structure of the project directory, offering a high-level overview of the project's organization. This section helps in understanding how the project is structured at a glance, including directories, subdirectories, and file locations.
+
+- **All Files Code**: Following the project tree, there is a detailed inclusion of the content of each file within the project. Each file's content is preceded by its relative path, providing a context for where it fits within the project structure. This part focuses on presenting the actual code, configurations, and any other textual data contained within the files, formatted within code blocks for clarity.
+
+### Tips for LLM Analysis
+
+- When analyzing the code or documentation contained in this snapshot, consider the context provided by the file's location within the project tree.
+- Pay attention to the specified excluding patterns that were used to generate this snapshot. They help in focusing the analysis on the most relevant files by omitting common file types that are not typically necessary for understanding the project's functionality (e.g., log files, media files).
+- Use the detailed file content presented to gain insights into the project's coding conventions, architectural decisions, and overall functionality.
+
+## Purpose of This Document
+
+The primary purpose of this document is to serve as a bridge between complex software projects and LLMs, enhancing the accessibility of project data for AI-driven analysis. It simplifies the process of presenting a project's structure and codebase in a format that is both comprehensive and easy for LLMs to interpret, thus supporting a wide range of analytical and developmental tasks.
+
+EOF
 
 # Generating directory tree and saving the result to a file
 echo "## Full project tree" >> "$output_file"
-tree -I "$excluding_patterns" "$project_dir" -f --prune | head -n -1 >> "$output_file"
+tree "$project_dir" \
+    -I "$excluding_patterns" \
+    -f --prune | head -n -1 >> "$output_file"
 
 # Save all text to one file snapshot
 echo "## All files code"  >> "$output_file"
