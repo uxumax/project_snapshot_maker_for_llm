@@ -86,7 +86,7 @@ EOF
 echo "## Full project tree" >> "$output_file"
 tree "$project_dir" \
     -I "$excluding_patterns" \
-    -f --prune | head -n -1 >> "$output_file"
+    -f --prune | sed "s|${project_dir}/||g" | head -n -1 >> "$output_file"
 
 # Save all text to one file snapshot
 echo "## All files code"  >> "$output_file"
@@ -94,17 +94,29 @@ echo "## All files code"  >> "$output_file"
 paths=$(grep -v '/$' "$output_file" | sed -e 's/^.*── //' -e '/^##/d') 
 # Add text to $output_file 
 while IFS= read -r path; do
-    if [ -f "$path" ]; then # Проверка, является ли путь файлом
-        mime_type=$(file --mime-type -b "$path") # Get MIME type of the file
-        if [[ $mime_type == text/* ]]; then # Check if MIME type starts with "text/"
-            # Save filepath
-            echo -e "\n### $path\n" >> "$output_file"
-            # Save file text
-            echo '```bash' >> "$output_file"
-            cat "$path" >> "$output_file"
-            echo '```' >> "$output_file"
-            # New line
-            echo "" >> "$output_file"
-        fi
+    full_path=$project_dir/$path
+
+    # Is the path not a file
+    if [ ! -f "$full_path" ]; then
+        # Skip directory
+        continue
     fi
+
+    # Get MIME type of the file
+    mime_type=$(file --mime-type -b "$full_path") 
+    # Check if MIME type doesn't start with "text/"
+    if [[ ! $mime_type == text/* ]]; then 
+        # Skip not text file
+        continue
+    fi
+
+    # Save filepath
+    echo -e "\n### $path\n" >> "$output_file"
+    # Save file text
+    echo '```bash' >> "$output_file"
+    cat "$full_path" >> "$output_file"
+    echo '```' >> "$output_file"
+    # New line
+    echo "" >> "$output_file"
+
 done <<< "$paths"
