@@ -60,11 +60,12 @@ fi
 
 # Write the markdown prompt to the output file
 cat << 'EOF' > "$output_file"
+
 # Project Snapshot Overview
 
 This document is a comprehensive textual snapshot of a software project. It is designed for analysis by Large Language Models (LLMs), like ChatGPT, to facilitate in-depth understanding and exploration of the project's codebase and structure. The snapshot aims to provide a clear and organized presentation of the project components for effective analysis and interpretation.
 
-## How to Navigate This Snapshot
+### How to Navigate This Snapshot
 
 - **Full Project Tree**: Initially, you'll find a complete tree structure of the project directory, offering a high-level overview of the project's organization. This section helps in understanding how the project is structured at a glance, including directories, subdirectories, and file locations.
 
@@ -76,9 +77,36 @@ This document is a comprehensive textual snapshot of a software project. It is d
 - Pay attention to the specified excluding patterns that were used to generate this snapshot. They help in focusing the analysis on the most relevant files by omitting common file types that are not typically necessary for understanding the project's functionality (e.g., log files, media files).
 - Use the detailed file content presented to gain insights into the project's coding conventions, architectural decisions, and overall functionality.
 
-## Purpose of This Document
+### Purpose of This Document
 
 The primary purpose of this document is to serve as a bridge between complex software projects and LLMs, enhancing the accessibility of project data for AI-driven analysis. It simplifies the process of presenting a project's structure and codebase in a format that is both comprehensive and easy for LLMs to interpret, thus supporting a wide range of analytical and developmental tasks.
+
+# Prompt Structure for Software Project Contextualization
+
+### Project Overview:
+
+Briefly describe the project's goal, main functionality, and its structure. Highlight any key libraries or frameworks you're using.
+Example: "This is a Django web application designed to automate social media posting. It uses Django's ORM for database interactions, Celery for task scheduling, and the requests library for API interactions."
+
+### File Context:
+
+Specifically mention the file in question (e.g., bots/poster.py) and its role within the project.
+Example: "The bots/poster.py script is responsible for creating and scheduling social media posts. It interacts with the database to fetch post content and uses a third-party API to post to social media platforms."
+
+### Issue or Task Description:
+
+Clearly state what you need from the model concerning this file. It could be rewriting the file for optimization, adding new features, or fixing specific issues.
+Example: "I need to rewrite the bots/poster.py to include error handling for API rate limits and to optimize the scheduling logic for efficiency."
+
+### Technical Context and Specifics:
+
+Provide details on imports, any specific functions or classes used, and how they're related to the rest of the project. Mention any external libraries or APIs the file interacts with.
+Example: "The script uses the requests library for API calls and interacts with the Django model ScheduledPost to fetch pending posts. All posts are sent to the Twitter API."
+
+### Expected Behavior or Output:
+
+Describe the expected outcome of the rewrite or the task. If there are specific benchmarks or behavior (like error handling), mention them.
+Example: "After the rewrite, the script should retry failed API calls up to three times with exponential backoff and log errors to the Django admin interface without crashing."
 
 EOF
 
