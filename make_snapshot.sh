@@ -35,6 +35,20 @@ while getopts "p:o:e:" opt; do
     esac
 done
 
+# Check if the 'file' command exists
+if ! command -v file &> /dev/null; then
+    echo "Error: 'file' command not found. Please install it using:"
+    echo "sudo apt-get update && sudo apt-get install file"
+    exit 1
+fi
+
+# Check if the 'tree' command exists
+if ! command -v tree &> /dev/null; then
+    echo "Error: 'tree' command not found. Please install it using:"
+    echo "sudo apt-get update && sudo apt-get install tree"
+    exit 1
+fi
+
 # Set exclusion patterns
 excluding_patterns=$(printf "%s" "${DEFAULT_EXCLUDING_PATTERNS[@]}")
 if [ -n "$custom_excluding_patterns" ]; then
